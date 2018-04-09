@@ -1,0 +1,51 @@
+
+#include <os2.h>
+#include "chain.h"
+
+MENU IDM_RESOURCE
+{
+    SUBMENU "~Control", IDM_CNTRL
+    {
+        MENUITEM "St~art", IDM_START
+        MENUITEM "~Continue", IDM_CONTINUE
+        MENUITEM "St~op", IDM_STOP  ,, MIA_DISABLED
+    }
+    SUBMENU "~Setup", IDM_SETUP
+    {
+    }
+    SUBMENU "S~tep", IDM_STEP
+    {
+    }
+    SUBMENU "C~lear", IDM_CLEAR
+    {
+    }
+}
+
+DLGTEMPLATE 3 LOADONCALL MOVEABLE DISCARDABLE 
+BEGIN
+    DIALOG "", 3, 25, -9, 160, 125, FS_NOBYTEALIGN | FS_DLGBORDER | 
+                WS_VISIBLE | WS_CLIPSIBLINGS | WS_SAVEBITS
+    BEGIN
+        CONTROL "", 21, 91, 105, 40, 8, WC_ENTRYFIELD, ES_LEFT | ES_MARGIN | 
+                WS_TABSTOP | WS_VISIBLE
+        CONTROL "", 24, 91, 87, 40, 8, WC_ENTRYFIELD, ES_LEFT | ES_MARGIN | 
+                WS_TABSTOP | WS_VISIBLE
+        CONTROL "Diner Options", 40, 33, 39, 100, 37, WC_STATIC, 
+                SS_GROUPBOX | WS_GROUP | WS_VISIBLE
+        CONTROL "4 Cell Menu", 42, 39, 58, 81, 10, WC_BUTTON, BS_RADIOBUTTON | 
+                WS_TABSTOP | WS_VISIBLE
+        CONTROL "8 Cell Menu", 41, 39, 45, 90, 10, WC_BUTTON, BS_RADIOBUTTON | 
+                WS_TABSTOP | WS_VISIBLE
+        CONTROL "Auto Restart", 27, 40, 24, 92, 10, WC_BUTTON, BS_CHECKBOX | 
+                WS_TABSTOP | WS_VISIBLE
+        CONTROL "OK", 25, 45, 5, 38, 12, WC_BUTTON, BS_PUSHBUTTON | WS_TABSTOP | 
+                WS_VISIBLE
+        CONTROL "CANCEL", 26, 95, 5, 38, 12, WC_BUTTON, BS_PUSHBUTTON | 
+                WS_TABSTOP | WS_VISIBLE
+        CONTROL "Array Size", 22, 31, 106, 47, 8, WC_STATIC, SS_TEXT | 
+                DT_LEFT | DT_TOP | WS_GROUP | WS_VISIBLE
+        CONTROL "Number States", 23, 13, 86, 68, 8, WC_STATIC, SS_TEXT | 
+                DT_LEFT | DT_TOP | WS_GROUP | WS_VISIBLE
+    END
+END
+
