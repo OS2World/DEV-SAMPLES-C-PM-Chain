@@ -1,4 +1,3 @@
-
 #define INCL_WIN
 #define INCL_DOS
 #define INCL_GPI
@@ -6,17 +5,17 @@
 #define INCL_ERRORS
 
 #include <os2.h>
-#include <mt/stdlib.h>
-#include <mt/memory.h>
-#include <mt/process.h>
-#include <mt/malloc.h>
-#include <mt/time.h>
+#include <stdlib.h>
+#include <memory.h>
+#include <process.h>
+#include <malloc.h>
+#include <time.h>
 #include "chain.h"
 
-MRESULT EXPENTRY ClientWndProc (HWND, USHORT, MPARAM, MPARAM );
-MRESULT EXPENTRY SetupDlgProc (HWND, USHORT, MPARAM, MPARAM );
+MRESULT EXPENTRY ClientWndProc (HWND, ULONG, MPARAM, MPARAM );
+MRESULT EXPENTRY SetupDlgProc (HWND, ULONG, MPARAM, MPARAM );
 
-VOID _CDECL FAR runThread(PCALCPARM);
+VOID runThread(VOID *);
 VOID randarr(char *, char * );
 VOID copy_arr (char *, char * );
 /* my declarations */
@@ -26,19 +25,20 @@ VOID process_arr8(char *, char *, unsigned int *, char *);
 VOID ClkShowFrameControls ( HWND ) ;
 VOID ClkHideFrameControls ( HWND ) ;
 VOID ReDrawWin ( HWND , HPS );
+VOID SetupChain(VOID);
+
 
 /* my global variables */
-HAB hab;
+HAB hab = NULLHANDLE;
 BOOL fControlsHidden = FALSE ;
-HWND hwndTitleBar , hwndSysMenu , hwndMinMax , hwndMenu ;
-HWND hwndFrame, hwndClient;
-HDC          hdc;
-CALCPARM     cp;
-HBITMAP      hbmprev;
-SIZEL       sizel;
-BITMAPINFOHEADER    bmp;
-TID          tid;
-VOID         *pThreadStack;
+HWND hwndTitleBar = NULLHANDLE , hwndSysMenu = NULLHANDLE , hwndMinMax = NULLHANDLE , hwndMenu = NULLHANDLE ;
+HWND hwndFrame = NULLHANDLE, hwndClient = NULLHANDLE;
+HDC          hdc = NULLHANDLE;
+CALCPARM     cp = {0};
+HBITMAP      hbmprev = NULLHANDLE;
+SIZEL       sizel = {0};
+BITMAPINFOHEADER2 bmp = {0};
+TID          tid = 0;
 
 unsigned long unicount;
 
@@ -46,11 +46,11 @@ unsigned int bxsize;
 unsigned int bysize;
 
 typedef struct {
-    USHORT axsize;
-    USHORT aysize;
-    USHORT states;
-    USHORT sb8ob4;
-    USHORT autors;
+    ULONG axsize;
+    ULONG aysize;
+    ULONG states;
+    ULONG sb8ob4;
+    ULONG autors;
 } MMPARMS;
 
 typedef MMPARMS * MMPARMSP;
@@ -67,21 +67,19 @@ int main (void)
     HMQ hmq;
     QMSG qmsg;
 
-    hab = WinInitialize( 0);
+    hab = WinInitialize(0);
     hmq = WinCreateMsgQueue (hab, 0 );
 
-    WinRegisterClass (hab, szClientClass, ClientWndProc,
-        CS_SIZEREDRAW, 0 );
+    WinRegisterClass (hab, (PCSZ) szClientClass, (PFNWP) ClientWndProc, CS_SIZEREDRAW, 0 );
 
     hwndFrame = WinCreateStdWindow ( HWND_DESKTOP, WS_VISIBLE,
-        &flFrameFlags, szClientClass, szClientClass, 0L, NULL, IDM_RESOURCE, &hwndClient );
-/*
-    WinSendMsg (hwndFrame, WM_SETICON,
-        WinQuerySysPointer( HWND_DESKTOP, SPTR_APPICON, FALSE ),
-        NULL );
-*/
+        &flFrameFlags, (PCSZ) szClientClass, (PCSZ) szClientClass, 0L, NULLHANDLE, IDM_RESOURCE, &hwndClient );
 
-    while (WinGetMsg (hab, &qmsg, NULL, 0, 0))
+    WinSendMsg (hwndFrame, WM_SETICON,
+        MPFROMLONG(WinQuerySysPointer( HWND_DESKTOP, SPTR_APPICON, FALSE )),
+        MPVOID );
+
+    while (WinGetMsg (hab, &qmsg, NULLHANDLE, 0, 0))
         WinDispatchMsg (hab, &qmsg );
 
     WinDestroyWindow (hwndFrame );
@@ -91,7 +89,7 @@ int main (void)
 
 }
 /* client window proceedure here */
-MRESULT EXPENTRY CLientWndProc (HWND hwnd, USHORT msg, MPARAM mp1, MPARAM mp2 )
+MRESULT EXPENTRY ClientWndProc (HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2 )
 {
     HPS                 hps;
     int i, count;
@@ -102,39 +100,40 @@ MRESULT EXPENTRY CLientWndProc (HWND hwnd, USHORT msg, MPARAM mp1, MPARAM mp2 )
 
     switch (msg)
     {
-        /* tell pm to track the frame on 1 buttton down */
+        /* tell pm to track the frame on 1 button down */
     	case WM_BUTTON1DOWN :
-	        return WinSendMsg ( hwndFrame , WM_TRACKFRAME ,
-		        ( MPARAM ) ( LOUSHORT ( mp2 ) | TF_MOVE ) , NULL ) ;
+	        return WinSendMsg ( WinQueryWindow(hwnd, QW_PARENT) , WM_TRACKFRAME ,
+		        MPFROMSHORT(TF_MOVE) , MPVOID ) ;
         /* tell pm to hide controls on double click */
     	case WM_BUTTON1DBLCLK :
 	        if ( fControlsHidden )
-        		ClkShowFrameControls ( hwndFrame ) ;
+               ClkShowFrameControls ( hwndFrame ) ;
     	    else
-           		ClkHideFrameControls ( hwndFrame ) ;
-    	    return 0;
+               ClkHideFrameControls ( hwndFrame ) ;
+    	    return MRFROMLONG(0);
         /* start up and create first bitmap here */
-        case WM_CREATE:
+     case WM_CREATE:
             /* set menu items to desired state here */
-            EnableMenuItem ( hwnd, IDM_START, TRUE );  
+            EnableMenuItem ( hwnd, IDM_START, TRUE );
             EnableMenuItem ( hwnd, IDM_STOP, FALSE );
             EnableMenuItem ( hwnd, IDM_SETUP, TRUE );
             /* fill out bit map header info */
-            bmp.cbFix = sizeof bmp;
+            bmp.cbFix = FIELDOFFSET(BITMAPINFOHEADER2,ulCompression);
             bmp.cx = mmparms.axsize;
             bmp.cy = mmparms.aysize;
             bmp.cPlanes = 1;
             bmp.cBitCount = 4;
             /* malloc array for colors */
-            cp.pbmi = malloc( sizeof (BITMAPINFO) + (sizeof(RGB) * 15) );
+            cp.pbmi = malloc( sizeof(BITMAPINFO2) + (sizeof(RGB2) * 15) );
             /* fill out bit map header info here, must be duplicate */
-            cp.pbmi->cbFix = sizeof bmp;
+            cp.pbmi->cbFix = FIELDOFFSET(BITMAPINFO2,ulCompression);
             cp.pbmi->cx = mmparms.axsize;
             cp.pbmi->cy = mmparms.aysize;
             cp.pbmi->cPlanes = 1;
             cp.pbmi->cBitCount = 4;
+
             /* get a handle to current presentation space */
-            hps = WinGetPS ( hwnd );
+            hps = WinGetScreenPS ( HWND_DESKTOP);
             /* get the current colors used by the Presentation space */
             for ( i = 0 ; i < 16; ++i )
             {
@@ -144,10 +143,7 @@ MRESULT EXPENTRY CLientWndProc (HWND hwnd, USHORT msg, MPARAM mp1, MPARAM mp2 )
                 cp.pbmi->argbColor[i].bGreen = rcolor->bGreen;
                 cp.pbmi->argbColor[i].bRed = rcolor->bRed;
             }
-            /* leggo my ps */
-            WinReleasePS ( hps );
             /* calculate first level bitmap size in bytes */
-
             bxsize = (((((mmparms.axsize*4)/8)/4)+1 ) *4);
 
             bysize = mmparms.aysize;
@@ -157,7 +153,7 @@ MRESULT EXPENTRY CLientWndProc (HWND hwnd, USHORT msg, MPARAM mp1, MPARAM mp2 )
             if ( NULL == cp.abitmap )
             {
                 WinAlarm ( HWND_DESKTOP, WA_ERROR );
-                return 0;
+                return MRFROMLONG(0);
             }
             /* allocate space for my byte maps */
             cp.old = (char *) malloc ( mmparms.axsize * mmparms.aysize );
@@ -167,7 +163,7 @@ MRESULT EXPENTRY CLientWndProc (HWND hwnd, USHORT msg, MPARAM mp1, MPARAM mp2 )
             if ( cp.old == NULL )
             {
                 WinAlarm ( HWND_DESKTOP, WA_ERROR );
-                return 0;
+                return MRFROMLONG(0);
             }
             if ( cp.new == NULL )
             {
@@ -176,7 +172,7 @@ MRESULT EXPENTRY CLientWndProc (HWND hwnd, USHORT msg, MPARAM mp1, MPARAM mp2 )
                     free(cp.old);
                 }
                 WinAlarm ( HWND_DESKTOP, WA_ERROR );
-                return 0;
+                return MRFROMLONG(0);
             }
             /* randomize my byte map */
             randarr( cp.old, cp.new );
@@ -187,7 +183,7 @@ MRESULT EXPENTRY CLientWndProc (HWND hwnd, USHORT msg, MPARAM mp1, MPARAM mp2 )
             sizel.cy = mmparms.aysize;
             /* get a memory device context */
             hdc = DevOpenDC
-                ( hab, OD_MEMORY, "*", 0L, NULL, NULL );
+                ( hab, OD_MEMORY, (PCSZ) "*", 0L, NULL, NULLHANDLE );
             /* Create my own presentaion space */
             /* associate it with my memory device context */
             cp.hps = GpiCreatePS
@@ -199,13 +195,13 @@ MRESULT EXPENTRY CLientWndProc (HWND hwnd, USHORT msg, MPARAM mp1, MPARAM mp2 )
             /* assign the second level bitmap to the presentation space */
             hbmprev = GpiSetBitmap ( cp.hps, cp.hbm );
             /* and were done with create */
-            return 0;
+            return MRFROMLONG(0);
         case WM_SIZE:
             /* do nothing for size command */
-            return 0;
+            return MRFROMLONG(0);
         case WM_PAINT:
             /* do standard begin paint command */
-            hps = WinBeginPaint ( hwnd, NULL, &rcl );
+            hps = WinBeginPaint ( hwnd, NULLHANDLE, &rcl );
             /* get current rectangle size */
             WinQueryWindowRect ( hwnd, &rcl );
             /* fill out two rectangle sizes */
@@ -218,7 +214,8 @@ MRESULT EXPENTRY CLientWndProc (HWND hwnd, USHORT msg, MPARAM mp1, MPARAM mp2 )
             apl[3].x = (LONG)mmparms.axsize;
             apl[3].y = (LONG)mmparms.aysize;
             /* copy first level bitmap to second level bitmap */
-            GpiSetBitmapBits ( cp.hps, 0L, (LONG)bysize, cp.abitmap, cp.pbmi );
+            GpiSetBitmapBits ( cp.hps, 0L, (LONG)bysize, (const BYTE *)
+								cp.abitmap, (const BITMAPINFO2 *) cp.pbmi );
             /* bitblt the bitmap presentation space to the screen PS */
             GpiBitBlt ( hps, cp.hps, 4L, apl, ROP_SRCCOPY, BBO_IGNORE );
             /* flag we have drawn to thread */
@@ -226,13 +223,14 @@ MRESULT EXPENTRY CLientWndProc (HWND hwnd, USHORT msg, MPARAM mp1, MPARAM mp2 )
             /* end the paint session */
             WinEndPaint ( hps );
             /* and were outta here */
-            return 0;
+            return MRFROMLONG(0);
 
         case WM_DESTROY:
             /* destroy command from the close box */
             if (cp.startf)
             {
-                DosSuspendThread (tid);
+                cp.startf = 0;
+                DosWaitThread(&tid,DCWW_WAIT);
             }
             /* free things up */
             free ( cp.pbmi );
@@ -240,18 +238,20 @@ MRESULT EXPENTRY CLientWndProc (HWND hwnd, USHORT msg, MPARAM mp1, MPARAM mp2 )
             free ( cp.new );
             /* delete things */
             GpiDeleteBitmap ( cp.hbm );
+            /* delete my PS */
+            GpiDestroyPS ( cp.hps );
+            /* close out my memory device context */
+            DevCloseDC ( hdc );
             /* were done */
-            return 0;
+            return MRFROMLONG(0);
         case WM_CALC_DONE:
-            /* free up thread stack */
-            free(pThreadStack);
             /* set menu items the way we want'em */
-            EnableMenuItem ( hwnd, IDM_START, TRUE );  
+            EnableMenuItem ( hwnd, IDM_START, TRUE );
             EnableMenuItem ( hwnd, IDM_STOP, FALSE );
             EnableMenuItem ( hwnd, IDM_SETUP, TRUE );
             EnableMenuItem ( hwnd, IDM_STEP, TRUE );
             EnableMenuItem ( hwnd, IDM_CONTINUE, TRUE );
-            return 0;
+            return MRFROMLONG(0);
         case WM_COMMAND:
             /* proccess menu commands here, first find out which one */
             switch (COMMANDMSG(&msg)->cmd)
@@ -271,27 +271,17 @@ skip:
                 cp.autors = mmparms.autors;
                 cp.hwnd = hwnd;
 
-                /* make a thread stack */
-                if ( NULL == (pThreadStack = malloc (STACKSIZE)))
-                {
-                    WinAlarm ( HWND_DESKTOP, WA_ERROR );
-                    free(cp.abitmap );
-                    free(cp.new);
-                    free(cp.old);
-                    return 0;
-                }
                 /* some no longer used variable */
                 unicount = 0L;
                 /* startup thread */
                 if ( -1 == (tid = _beginthread ( runThread,
-                    pThreadStack, STACKSIZE, &cp)) )
+                    NULL, STACKSIZE, &cp)) )
                 {
-                    free(pThreadStack);
                     WinAlarm ( HWND_DESKTOP, WA_ERROR );
-                    return 0;
+                    return MRFROMLONG(0);
                 }
                 /* set priority of thread to very low */
-                DosSetPrty( PRTYS_THREAD, PRTYC_IDLETIME, PRTYD_MINIMUM, tid );
+                DosSetPriority (PRTYS_THREAD, PRTYC_IDLETIME, PRTYD_MINIMUM, tid );
                 /* set menu items to proper state */
                 EnableMenuItem ( hwnd, IDM_START, FALSE );
                 EnableMenuItem ( hwnd, IDM_STOP, TRUE );
@@ -299,16 +289,15 @@ skip:
                 EnableMenuItem ( hwnd, IDM_STEP, FALSE );
                 EnableMenuItem ( hwnd, IDM_CONTINUE, FALSE );
                 EnableMenuItem ( hwnd, IDM_CLEAR, TRUE );
-
-               return 0;
+                return MRFROMLONG(0);
             case IDM_STOP:
                 /* to stop thread proccessing hit this variable */
                 cp.startf = 0;
-                return 0;
+                return MRFROMLONG(0);
             case IDM_SETUP:
                 /* call dialog box handler */
-                i = WinDlgBox ( HWND_DESKTOP, hwnd, SetupDlgProc, 
-                    NULL, IDD_DIALOG, &mmparms );
+                i = WinDlgBox ( HWND_DESKTOP, hwnd, SetupDlgProc,
+                    NULLHANDLE, IDD_DIALOG, &mmparms );
                 if ( !i )
                 {
                     SetupChain();
@@ -323,60 +312,62 @@ skip:
                     /* invalidate rectangle to force redraw */
                     WinInvalidateRect( hwnd, NULL, FALSE );
                     /* set menu items to desired state */
-                    EnableMenuItem ( hwnd, IDM_CONTINUE, i );  
-                    EnableMenuItem ( hwnd, IDM_STEP, i );  
+                    EnableMenuItem ( hwnd, IDM_CONTINUE, i );
+                    EnableMenuItem ( hwnd, IDM_STEP, i );
                     EnableMenuItem ( hwnd, IDM_CLEAR, i );
                 }
                 /* were outta here */
-                return 0;
+                return MRFROMLONG(0);
             case IDM_STEP:
                 /* check which processing routine to call */
                 /* call life chain process my byte map */
                 if ( cp.sb8ob4)
-                    process_arr4( cp.old, cp.new, &count, cp.abitmap );
+                    process_arr4( cp.old, cp.new, (unsigned int *) &count, cp.abitmap );
                 else
-                    process_arr8( cp.old, cp.new, &count, cp.abitmap );
+                    process_arr8( cp.old, cp.new, (unsigned int *) &count, cp.abitmap );
                 /* move my byte map into first level bitmap */
-                copy_arr( cp.old, (PBYTE) cp.abitmap );
+                copy_arr( cp.old, (char *) cp.abitmap );
                 /* invalidate rectangle to force redraw */
                 WinInvalidateRect( hwnd, NULL, FALSE );
-                return 0;
+                return MRFROMLONG(0);
             /* reinitialize my chain array */
             case IDM_CLEAR:
                 /* re randomize it */
                 randarr( cp.old, cp.new );
                 /* copy my byte map into first level bitmap */
-                copy_arr( cp.old, (PBYTE) cp.abitmap );
+                copy_arr( cp.old, (char *) cp.abitmap );
                 /* set first level bitmap into second level bitmap */
                 GpiSetBitmapBits
-                    ( cp.hps, 0L, (LONG)bysize, cp.abitmap, cp.pbmi );
+                    ( cp.hps, 0L, (LONG)bysize, (const BYTE *) cp.abitmap, (const BITMAPINFO2 *) cp.pbmi );
                 /* invalidate the rectangle to force redraw */
                 WinInvalidateRect( hwnd, NULL, FALSE );
-                return 0;
+                return MRFROMLONG(0);
             /* currently unused */
             case IDM_INC:
-                DosSetPrty( PRTYS_THREAD, PRTYC_NOCHANGE, 10, tid );
-                return 0;
+                DosSetPriority( PRTYS_THREAD, PRTYC_NOCHANGE, 10, tid );
+                return MRFROMLONG(0);
             /* currently unused */
             case IDM_DEC:
-                DosSetPrty( PRTYS_THREAD, PRTYC_NOCHANGE, -10, tid );
-                return 0;
+                DosSetPriority( PRTYS_THREAD, PRTYC_NOCHANGE, -10, tid );
+                return MRFROMLONG(0);
             }
     }
     /* standard default pm return */
     return WinDefWindowProc (hwnd, msg, mp1, mp2 );
 }
 /* generic delete old bitmaps and setup new ones routines */
-SetupChain()
+void SetupChain(void)
 {
-    /* set my PS space back to original bitmap */
-    GpiSetBitmap ( cp.hps, hbmprev );
-    /* delete my second level bitmap */
-    GpiDeleteBitmap ( cp.hbm );
-    /* delete my PS */
-    GpiDestroyPS ( cp.hps );
-    /* close out my memory device context */
-    DevCloseDC ( hdc );
+    if (hbmprev) {
+       /* set my PS space back to original bitmap */
+       GpiSetBitmap ( cp.hps, hbmprev );
+       /* delete my second level bitmap */
+       GpiDeleteBitmap ( cp.hbm );
+       /* delete my PS */
+       GpiDestroyPS ( cp.hps );
+       /* close out my memory device context */
+       DevCloseDC ( hdc );
+    } /* endif */
     /* set up start flag for thread */
     cp.startf = 1;
     /* delete my byte maps */
@@ -403,16 +394,16 @@ SetupChain()
     if ( NULL == cp.abitmap )
     {
         WinAlarm ( HWND_DESKTOP, WA_ERROR );
-        return 0;
+        return;
     }
     /* realloc my byte map sizes */
     cp.old = (char *) malloc ( mmparms.axsize * mmparms.aysize );
     cp.new = (char *) malloc ( mmparms.axsize * mmparms.aysize );
-    /* test the allocations */                                    
+    /* test the allocations */
     if ( cp.old == NULL )
     {
         WinAlarm ( HWND_DESKTOP, WA_ERROR );
-        return 0;
+        return;
     }
     if ( cp.new == NULL )
     {
@@ -421,7 +412,7 @@ SetupChain()
             free(cp.old);
         }
         WinAlarm ( HWND_DESKTOP, WA_ERROR );
-        return 0;
+        return;
     }
     /* fill out all of my internal variables */
     /* so theres a lot of duplication, lets just say i never */
@@ -435,19 +426,22 @@ SetupChain()
 
     /* open a memory device context */
     hdc = DevOpenDC
-        ( hab, OD_MEMORY, "*", 0L, NULL, NULL );
+        ( hab, OD_MEMORY, (PCSZ) "*", 0L, NULL, NULLHANDLE );
     /* create myself a presentation space */
     cp.hps = GpiCreatePS
         ( hab, hdc, &sizel, PU_PELS | GPIT_MICRO | GPIA_ASSOC );
     /* create myself a bitmap out of my first level bitmap */
     cp.hbm = GpiCreateBitmap
-        ( cp.hps, &bmp, CBM_INIT, (PBYTE) cp.abitmap, cp.pbmi );
+        ( cp.hps, &bmp, CBM_INIT,
+					(PBYTE) cp.abitmap, (const BITMAPINFO2 *) cp.pbmi );
     /* assign my second level bitmap to my presentation space */
     hbmprev = GpiSetBitmap ( cp.hps, cp.hbm );
 
+    return;
 }
+
 /* dialog box handler */
-MRESULT EXPENTRY SetupDlgProc (HWND hwnd, USHORT msg, MPARAM mp1, MPARAM mp2)
+MRESULT EXPENTRY SetupDlgProc (HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2)
 {
     /* everything static in pm, not what I call effecient!!! */
     static MMPARMS mmparmsl;
@@ -485,7 +479,7 @@ MRESULT EXPENTRY SetupDlgProc (HWND hwnd, USHORT msg, MPARAM mp1, MPARAM mp2)
         /* bring dialog box into focus */
         WinSetFocus( HWND_DESKTOP,
             WinWindowFromID ( hwnd, IDM_ARRAYS ));
-        return 1;
+        return MRFROMLONG(1);
      case WM_CONTROL:
         /* control functions */
         /* get message id of user action */
@@ -523,12 +517,12 @@ MRESULT EXPENTRY SetupDlgProc (HWND hwnd, USHORT msg, MPARAM mp1, MPARAM mp2)
             }
 
         }
-        return 0;
+        return MRFROMLONG(0);
      case WM_COMMAND:
         switch ( COMMANDMSG(&msg)->cmd)
         {
         case IDM_OK:
-            WinQueryDlgItemShort(hwnd, IDM_ARRAYS, &mmparmsl.axsize, FALSE );
+            WinQueryDlgItemShort(hwnd, IDM_ARRAYS, (PSHORT) &mmparmsl.axsize, FALSE );
             /* do some range checking */
             /* for some reason i never understood 200 does not work right */
             /* but 1 - 199 and 201 - BIG  works fine, hummmmmm */
@@ -539,7 +533,7 @@ MRESULT EXPENTRY SetupDlgProc (HWND hwnd, USHORT msg, MPARAM mp1, MPARAM mp2)
                 mmparmsl.axsize = 199;
             }
             mmparmsl.aysize = mmparmsl.axsize;
-            WinQueryDlgItemShort(hwnd, IDM_NUMBER, &mmparmsl.states, FALSE );
+            WinQueryDlgItemShort(hwnd, IDM_NUMBER, (PSHORT) &mmparmsl.states, FALSE );
             if ( mmparmsl.states >= 33 )
             {
                 mmparmsl.states = 32;
@@ -548,10 +542,10 @@ MRESULT EXPENTRY SetupDlgProc (HWND hwnd, USHORT msg, MPARAM mp1, MPARAM mp2)
                 ( hwnd, IDM_AUTOR, BM_QUERYCHECK, NULL, NULL ) );
             *mmparmsp = mmparmsl;
             WinDismissDlg( hwnd, FALSE );
-            return 0;
+            return MRFROMLONG(0);
         case IDM_CANCEL:
             WinDismissDlg( hwnd, TRUE );
-            return 0;
+            return MRFROMLONG(0);
         }
         break;
     }
@@ -560,11 +554,12 @@ MRESULT EXPENTRY SetupDlgProc (HWND hwnd, USHORT msg, MPARAM mp1, MPARAM mp2)
 
 /* my thread to constantly redo my CA array */
 
-VOID _CDECL FAR runThread(PCALCPARM pcp)
+VOID runThread(VOID *p)
 {
+    PCALCPARM pcp = (PCALCPARM)p;
     unsigned int count;
     unsigned int bignum;
-    HPS hps;
+    // HPS hps;
 
     /* calculate internal value for auto restart feature */
     bignum = (mmparms.axsize * mmparms.aysize) -
@@ -573,7 +568,7 @@ VOID _CDECL FAR runThread(PCALCPARM pcp)
     if ( pcp->startf == 1 )
     {
         randarr( pcp->old, pcp->new );
-        copy_arr( pcp->old, (PBYTE) pcp->abitmap );
+        copy_arr( pcp->old, (char *) pcp->abitmap );
     }
     else
     {
@@ -594,7 +589,7 @@ VOID _CDECL FAR runThread(PCALCPARM pcp)
         if ( (count == 0 || count > bignum) && pcp->autors )
         {
             randarr( pcp->old, pcp->new );
-            copy_arr( pcp->old, (PBYTE) pcp->abitmap );
+            copy_arr( pcp->old, (char *) pcp->abitmap );
         }
         /* this looks like a good idea, but never seems to go into effect */
         while ( pcp->drawn )
@@ -607,19 +602,17 @@ VOID _CDECL FAR runThread(PCALCPARM pcp)
         /* invalidate window rectangle to force redraw of window */
         WinInvalidateRect( pcp->hwnd, NULL, FALSE );
     }
-    /* all done, get ready to leave thread */
-    DosEnterCritSec();
     /* post a done message to parent process */
     WinPostMsg ( pcp->hwnd, WM_CALC_DONE, NULL, NULL );
     /* and were outta here */
-    _endthread();
+    return;
 }
 
 /* this routine copies my byte map array into first level bitmap array */
 VOID copy_arr( char *old, char *abitmap )
 {
     /* position variables */
-    unsigned int x, y, i;
+    unsigned int x, y;
     /* char pointer  */
     char *cp;
     /* loop on y axis size */
@@ -683,7 +676,7 @@ VOID set_arr( unsigned int y, unsigned int x, int k, char *abitmap )
 
 VOID process_arr8( char *old, char *new, unsigned int *count, char *abitmap )
 {
-    POINTL apoint;
+    // POINTL apoint;
     unsigned int i, j;
     char k;
     /* my byte pointers */
@@ -877,7 +870,7 @@ VOID process_arr8( char *old, char *new, unsigned int *count, char *abitmap )
         else
         {
             m1p1 = old + (i-1) * mmparms.axsize;
-            p1p1 = old + (i+1) * mmparms.axsize; 
+            p1p1 = old + (i+1) * mmparms.axsize;
         }
         hp1  = old + i * mmparms.axsize;
         k = ((*homo) + 1) % mmparms.states;
@@ -956,7 +949,7 @@ VOID process_arr4( char *old, char *new, unsigned int *count, char *abitmap)
             hp1  = old + (i * mmparms.axsize) + 1;
             hm1  = old + (i * mmparms.axsize) + mmparms.axsize-1;
             p1h  = old ;
-        }       
+        }
         else
         {
             homo = old + (i * mmparms.axsize);

@@ -26,7 +26,7 @@
 #define IDM_CANCEL 26
 #define IDM_AUTOR 27
 
-#define STACKSIZE + 8196
+#define STACKSIZE 0x8000UL
 
 void EnableMenuItem(HWND , SHORT , BOOL );
 
@@ -35,7 +35,7 @@ typedef struct {
     HPS hps;
     int startf;
     int drawn;
-    BITMAPINFO  *pbmi;
+    BITMAPINFO2  *pbmi;
     HBITMAP hbm;
     char *abitmap;
     int sb8ob4;
@@ -44,5 +44,5 @@ typedef struct {
     char *new;
 } CALCPARM;
 
-typedef CALCPARM FAR *PCALCPARM;
+typedef CALCPARM *PCALCPARM;
 

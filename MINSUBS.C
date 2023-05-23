@@ -4,15 +4,15 @@
 #define INCL_DOS
 
 #include <os2.h>
-#include <mt/stdio.h>
-#include <mt/stdlib.h>
+#include <stdio.h>
+#include <stdlib.h>
 #include "chain.h"
 extern BOOL fControlsHidden;
 extern HWND hwndTitleBar , hwndSysMenu , hwndMinMax , hwndMenu ;
 
 VOID EnableMenuItem( HWND hwnd, SHORT sMenuItem, BOOL fEnable )
 {
-    HWND hwndParent = WinQueryWindow ( hwnd, QW_PARENT, FALSE );
+    HWND hwndParent = WinQueryWindow ( hwnd, QW_PARENT );
     HWND hwndMenu = WinWindowFromID ( hwndParent, FID_MENU );
     WinSendMsg ( hwndMenu, MM_SETITEMATTR,
         MPFROM2SHORT ( sMenuItem, TRUE ),
