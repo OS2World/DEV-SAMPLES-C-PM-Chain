@@ -7,10 +7,12 @@ LICENSE
 
 COMPILE TOOLS
 ===============
-* 
+* yum install git gcc make libc-devel binutils watcom-wrc watcom-wlink-hll
  
 AUTHORS
 ===============
+* Lars Erdmann
+* Martin Iturbide
 * Karl Nicholas
 
 LINKS
