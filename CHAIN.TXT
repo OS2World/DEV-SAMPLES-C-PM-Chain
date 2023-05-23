@@ -1,54 +1,71 @@
+Name: 		Chain
+Descripcion: 	Celular Automata sample PM program
+Date: 		2023-05-23
+Version:	1.01
+----------------------------  
 
 
-            Chain.* is a FREEWARE program. It is supplied to all free
-of charge and responsiblity. Everything contained here is supplied "AS
-IS". I do not accept ANY responsiblity for anything that may or may
-not happen to anything you have anything to do with because of or not
-because of this program. Do what you want with this program, source
-or anything else you find here, as long as this disclaimer remains
-intact with the program and source.
+DESCRIPTION
+-----------
+This program is modeled after a Cellular Automata program I read about in Scientific American in the computer recreations article. I do not remember what issue, late 89 I think, but any follower of A.K Dewdney will no doubt reconize this "CHAIN" program.
 
-   On the lighter side, this program is modeled after a Cellular
-Automata program I read about in Scientific American in the computer
-recreations article. I do not remember what issue, late 89 I think,
-but any follower of A.K Dewdney will no doubt reconize this "CHAIN"
-program.
-
-   The idea is that a color "eats" another color, thus turning that
-color into it's own color. In other words, black may eat white, white
-eats red, red eats blue, and finally blue eats black, thus making a
-'Food' chain. The color array is randomized in the beginning and the
-chain algorithm applied repeatedly. The biggest purpose of the
-program is the effect. It looks cool. Sometimes all of one color
-takes over, sometimes a stable food chain evolves. Every now and then
+The idea is that a color "eats" another color, thus turning that color into it's own color. In other words, black may eat white, white eats red, red eats blue, and finally blue eats black, thus making a 'Food' chain. The color array is randomized in the beginning and the chain algorithm applied repeatedly. The biggest purpose of the program is the effect. It looks cool. Sometimes all of one color takes over, sometimes a stable food chain evolves. Every now and then
 something else happens, can you find out??
 
-   Also it was my attempt to make OS/2 do graphics from an array I
-have control over. I start with a bit map and have it constantly
-update the PM window. I felt it was easier to do window manipulation
-in my own array, then update the window with a BITBLT call. Also
-faster.
+Also it was my attempt to make OS/2 do graphics from an array I have control over. I start with a bit map and have it constantly update the PM window. I felt it was easier to do window manipulation in my own array, then update the window with a BITBLT call. Also faster.
 
-   The only bug I know about is with array sizes that are multiples
-of forty. I have no idea why multiples of forty do not work, but the
-problem seems to be something in PM, not my program. I have yet to
-prove it though, as I am not getting paid to write PM programs, yet.
-If you have any ideas, solutions, or questions contact me at the 
-Invention Factory BBS, NYC NY.
+The only bug I know about is with array sizes that are multiples of forty. I have no idea why multiples of forty do not work, but the problem seems to be something in PM, not my program. I have yet to prove it though, as I am not getting paid to write PM programs, yet. If you have any ideas, solutions, or questions contact me at the Invention Factory BBS, NYC NY.
 
-   In order to start the program, use CONTROL-START. After things
-settle down a bit, use CLEAR to re-randomize. Mostly have a
-good time. This program also does a good job of demostrating
-multi-tasking in OS/2. Open 4 or 8 copies of the program and see how
-well your amchine multi-tasks. If you make any improvements I would
-like to get a copy. The code also is a good template for other
-bit-map ideas in CA or other graphics. I am currently working on a
+In order to start the program, use CONTROL-START. After things settle down a bit, use CLEAR to re-randomize. Mostly have a good time. This program also does a good job of demostrating multi-tasking in OS/2. Open 4 or 8 copies of the program and see how well your amchine multi-tasks. If you make any improvements I would like to get a copy. The code also is a good template for other bit-map ideas in CA or other graphics. I am currently working on a
 slow grow fractal program, also found in Sci-Am.
 
+REQUIREMENTS
+------------
+- yum install git gcc make libc-devel binutils watcom-wrc watcom-wlink-hll
 
-                                     Karl Nicholas
-                                     NYC NY.
-                                     (212) 836-5673  wrk hrs
+COMPILE INSTRUCTIONS
+--------------------
+This version of this sample was modified to compile on ArcaOS with GCC 9 compiler. 
 
+1) Remember to have correct header files your path. For GCC the correct ones are the included on the "libc-devel", not the ones from the OS/2 Toolkit. Check your config.sys for "SET INCLUDE=C:\usr\include"
 
+2) Since I'm using the Watcom Resource Compiler (open source) instead of the classic rc.exe, and the the Watcom Linker, intead of the classic ilink.exe, add to your config.sys...
+ SET EMXOMFLD_LINKER=wl.exe
+ SET EMXOMFLD_TYPE=WLINK
+ SET EMXOMFLD_RC_TYPE=WRC
+ SET EMXOMFLD_RC=wrc.exe
 
+3) Run "make" or "make 2>&1 |tee make.out" to get the log file.
+
+TOOLS USED
+----------
+- ArcaOS	- Verion 5.0.7
+- wrc 		- Version 2.0beta1
+- gcc		- gcc (GCC) 9.2.0 20190812 (OS/2 RPM build 9.2.0-5.oc00)
+- make 		- Version 3.81 k2 (2017-11-10)
+
+TROUBLESHOOT
+------------
+The compile produce will run by just executing make on the directory, but a compile.cmd file is includes to store the log in a file. If you want to save the log file you can run it as "nmake 2>&1 |tee make.out". The log will be saved into the "make.out" file.
+
+HISTORY
+---------- 
+- 1.01 - 2023-05-23
+Changed version to compile on gcc and to run on ArcaOS 5.0.7.
+
+- 1.0
+Original version by Karl Nicholas
+
+LICENSE
+-------
+The 3-Clause BSD License.
+
+DISCLAIMER
+----------
+Chain.* is a FREEWARE program. It is supplied to all free of charge and responsiblity. Everything contained here is supplied "AS IS". I do not accept ANY responsiblity for anything that may or may not happen to anything you have anything to do with because of or not because of this program. Do what you want with this program, source or anything else you find here, as long as this disclaimer remains intact with the program and source.
+
+AUTHORS
+-------
+- Martin Iturbide
+- Lars Erdmann
+- Karl Nicholas

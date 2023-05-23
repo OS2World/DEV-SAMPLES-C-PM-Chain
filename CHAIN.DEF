@@ -1,7 +1,10 @@
+;-------------------------------------
+; CHAIN.DEF module definition file
+;-------------------------------------
 
 NAME    CHAIN  WINDOWAPI
 
-DESCRIPTION 'Chain Cell Auto'
+DESCRIPTION     '@#OS2World:1.01#@##1## 23 May 2023 20:00:00     ARCAOS-507::::::v1.01@@Chain Cell Auto'
 STACKSIZE 0x10000
 
 

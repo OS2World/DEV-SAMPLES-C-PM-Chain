@@ -1,3 +1,6 @@
+/*---------------------------------------------
+   CHAIN.C -- Cellular Automata Sample Program
+  --------------------------------------------*/
 #define INCL_WIN
 #define INCL_DOS
 #define INCL_GPI

@@ -1,9 +1,10 @@
-# nmake makefile
+# make makefile
 #
 # Tools used:
 #  Compile::Watcom Resource Compiler
+#  Compile::Watcom Linker
 #  Compile::GNU C
-#  Make: nmake or GNU make
+#  Make: GNU make
 all : chain.exe
 
 chain.exe:  chain.obj minsubs.obj chain.res chain.def 

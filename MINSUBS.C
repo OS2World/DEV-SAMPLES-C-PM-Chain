@@ -1,4 +1,6 @@
-
+/*---------------------------------------------
+   MINISUBS.C -- Cellular Automata Sample Program
+  --------------------------------------------*/
 #define INCL_WIN
 #define INCL_GPI
 #define INCL_DOS

@@ -1,4 +1,6 @@
-
+/*------------------------
+   CHAIN.H header file
+  ------------------------*/
 #define IDM_RESOURCE 1
 
 #define IDM_CNTRL 1
