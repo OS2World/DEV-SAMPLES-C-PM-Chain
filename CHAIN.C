@@ -43,8 +43,6 @@ SIZEL       sizel = {0};
 BITMAPINFOHEADER2 bmp = {0};
 TID          tid = 0;
 
-unsigned long unicount;
-
 unsigned int bxsize;
 unsigned int bysize;
 
@@ -121,15 +119,15 @@ MRESULT EXPENTRY ClientWndProc (HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2 )
             EnableMenuItem ( hwnd, IDM_STOP, FALSE );
             EnableMenuItem ( hwnd, IDM_SETUP, TRUE );
             /* fill out bit map header info */
-            bmp.cbFix = FIELDOFFSET(BITMAPINFOHEADER2,ulCompression);
+            bmp.cbFix = sizeof(BITMAPINFOHEADER2);
             bmp.cx = mmparms.axsize;
             bmp.cy = mmparms.aysize;
             bmp.cPlanes = 1;
             bmp.cBitCount = 4;
-            /* malloc array for colors */
-            cp.pbmi = malloc( sizeof(BITMAPINFO2) + (sizeof(RGB2) * 15) );
+            /* calloc array for colors */
+            cp.pbmi = calloc( 1, sizeof(BITMAPINFO2) + (sizeof(RGB2) * 15) );
             /* fill out bit map header info here, must be duplicate */
-            cp.pbmi->cbFix = FIELDOFFSET(BITMAPINFO2,ulCompression);
+            cp.pbmi->cbFix = sizeof(BITMAPINFOHEADER2);
             cp.pbmi->cx = mmparms.axsize;
             cp.pbmi->cy = mmparms.aysize;
             cp.pbmi->cPlanes = 1;
@@ -159,9 +157,9 @@ MRESULT EXPENTRY ClientWndProc (HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2 )
                 return MRFROMLONG(0);
             }
             /* allocate space for my byte maps */
-            cp.old = (char *) malloc ( mmparms.axsize * mmparms.aysize );
+            cp.old = (char *) calloc ( 1, mmparms.axsize * mmparms.aysize );
             /* need two of them */
-            cp.new = (char *) malloc ( mmparms.axsize * mmparms.aysize );
+            cp.new = (char *) calloc ( 1, mmparms.axsize * mmparms.aysize );
             /* check allocate was ok */
             if ( cp.old == NULL )
             {
@@ -221,8 +219,6 @@ MRESULT EXPENTRY ClientWndProc (HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2 )
 								cp.abitmap, (const BITMAPINFO2 *) cp.pbmi );
             /* bitblt the bitmap presentation space to the screen PS */
             GpiBitBlt ( hps, cp.hps, 4L, apl, ROP_SRCCOPY, BBO_IGNORE );
-            /* flag we have drawn to thread */
-            cp.drawn = 0;
             /* end the paint session */
             WinEndPaint ( hps );
             /* and were outta here */
@@ -269,13 +265,10 @@ MRESULT EXPENTRY ClientWndProc (HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2 )
                 SetupChain();
 skip:
                 /* set initial state of thread variables */
-                cp.drawn = 0;
                 cp.sb8ob4 = mmparms.sb8ob4;
                 cp.autors = mmparms.autors;
                 cp.hwnd = hwnd;
 
-                /* some no longer used variable */
-                unicount = 0L;
                 /* startup thread */
                 if ( -1 == (tid = _beginthread ( runThread,
                     NULL, STACKSIZE, &cp)) )
@@ -305,7 +298,6 @@ skip:
                 {
                     SetupChain();
                     /* copy parameters/variables */
-                    cp.drawn = 0;
                     cp.sb8ob4 = mmparms.sb8ob4;
                     cp.autors = mmparms.autors;
                     /* re randomize array */
@@ -400,8 +392,8 @@ void SetupChain(void)
         return;
     }
     /* realloc my byte map sizes */
-    cp.old = (char *) malloc ( mmparms.axsize * mmparms.aysize );
-    cp.new = (char *) malloc ( mmparms.axsize * mmparms.aysize );
+    cp.old = (char *) calloc ( 1, mmparms.axsize * mmparms.aysize );
+    cp.new = (char *) calloc ( 1, mmparms.axsize * mmparms.aysize );
     /* test the allocations */
     if ( cp.old == NULL )
     {
@@ -594,16 +586,9 @@ VOID runThread(VOID *p)
             randarr( pcp->old, pcp->new );
             copy_arr( pcp->old, (char *) pcp->abitmap );
         }
-        /* this looks like a good idea, but never seems to go into effect */
-        while ( pcp->drawn )
-        {
-            unicount ++;
-            DosSleep(0L);
-        }
-        /* flag need to redraw */
-        pcp->drawn = 1;
         /* invalidate window rectangle to force redraw of window */
         WinInvalidateRect( pcp->hwnd, NULL, FALSE );
+        DosSleep(1);
     }
     /* post a done message to parent process */
     WinPostMsg ( pcp->hwnd, WM_CALC_DONE, NULL, NULL );

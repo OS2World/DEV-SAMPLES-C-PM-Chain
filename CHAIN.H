@@ -36,7 +36,6 @@ typedef struct {
     HWND hwnd;
     HPS hps;
     int startf;
-    int drawn;
     BITMAPINFO2  *pbmi;
     HBITMAP hbm;
     char *abitmap;

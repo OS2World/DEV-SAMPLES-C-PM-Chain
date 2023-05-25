@@ -1,6 +1,3 @@
-/*----------------------------------
-   CHAIN.RC resource script file
-  ----------------------------------*/
 #include <os2.h>
 #include "chain.h"
 

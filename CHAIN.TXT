@@ -1,7 +1,7 @@
 Name: 		Chain
 Descripcion: 	Celular Automata sample PM program
-Date: 		2023-05-23
-Version:	1.01
+Date: 		2023-05-25
+Version:	1.02
 ----------------------------  
 
 
@@ -50,6 +50,9 @@ The compile produce will run by just executing make on the directory, but a comp
 
 HISTORY
 ---------- 
+- 1.02
+Lars code improvements.
+
 - 1.01 - 2023-05-23
 Changed version to compile on gcc and to run on ArcaOS 5.0.7.
 
